@@ -3,6 +3,7 @@ package com.stc07.gubarkovag;
 import com.stc07.gubarkovag.db.dao.ApplicationDAO;
 import com.stc07.gubarkovag.db.dao.BookDAO;
 import com.stc07.gubarkovag.db.dao.UserDAO;
+import com.stc07.gubarkovag.jaxbutlities.JAXBActions;
 import com.stc07.gubarkovag.jaxbwrappers.Applications;
 import com.stc07.gubarkovag.jaxbwrappers.Books;
 import com.stc07.gubarkovag.jaxbwrappers.Users;
@@ -19,6 +20,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Main {
 
@@ -160,21 +164,61 @@ public class Main {
 
         List<Application> applications = insertApplications(usersIds, booksIds);
 
-        jaxbMarshalling(Users.class, "user.dat", new Users(users));
-        jaxbMarshalling(Books.class, "book.dat", new Books(books));
-        jaxbMarshalling(Applications.class, "application.dat", new Applications(applications));
+        JAXBActions.jaxbMarshalling(Users.class, "user.dat", new Users(users));
+        JAXBActions.jaxbMarshalling(Books.class, "book.dat", new Books(books));
+        JAXBActions.jaxbMarshalling(Applications.class, "application.dat", new Applications(applications));
 
         //System.exit(1);
 
         System.out.println();
         System.out.println();
 
-        Users unMarshalledUsers = (Users)jaxbUnmarshalling(Users.class, "user.dat");
-        Books unMarshalledBooks = (Books)jaxbUnmarshalling(Books.class, "book.dat");
+        Users unMarshalledUsers = (Users)JAXBActions.jaxbUnmarshalling(Users.class, "user.dat");
+        Books unMarshalledBooks = (Books)JAXBActions.jaxbUnmarshalling(Books.class, "book.dat");
         Applications unMarshalledApplications =
-                (Applications)jaxbUnmarshalling(Applications.class, "application.dat");
+                (Applications)JAXBActions.jaxbUnmarshalling(Applications.class, "application.dat");
 
         clearDatabase();
+
+        /*Lock lock = new ReentrantLock();
+        Condition blockingPoolA = lock.newCondition();
+
+        new Thread("UnmarshallUsers") {
+            @Override
+            public void run() {
+                lock.lock();
+                try {
+                    blockingPoolA.await();
+                    UserDAO.insertAll(unMarshalledUsers.getUsers());
+                } catch (UserDAO.UserDAOException | InterruptedException e) {
+                    e.printStackTrace();
+                } finally {
+                    lock.unlock();
+                }
+            }
+        }.start();
+
+        new Thread("UnmarshallBooks") {
+            @Override
+            public void run() {
+                try {
+                    BookDAO.insertAll(unMarshalledBooks.getBooks());
+                } catch (BookDAO.BookDAOException | InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }.start();
+
+        new Thread("UnmarshallApplications") {
+            @Override
+            public void run() {
+                try {
+                    ApplicationDAO.insertAll(unMarshalledApplications.getApplications());
+                } catch (ApplicationDAO.ApplicationDAOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }.start();*/
 
         try {
             UserDAO.insertAll(unMarshalledUsers.getUsers());
@@ -186,7 +230,7 @@ public class Main {
         }
     }
 
-    private static void jaxbMarshalling(Class<?> cls, String fileName, Object jaxbElement) {
+    /*private static void jaxbMarshalling(Class<?> cls, String fileName, Object jaxbElement) {
         try {
             JAXBContext jaxbContext = JAXBContext.newInstance(cls);
             Marshaller marshaller = jaxbContext.createMarshaller();
@@ -225,5 +269,5 @@ public class Main {
         }
 
         return unMarshalledObject;
-    }
+    }*/
 }
